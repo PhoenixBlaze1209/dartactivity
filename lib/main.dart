@@ -97,6 +97,14 @@ void searchStudents(String query) {
                   leading: const Icon(Icons.person),
                   title: Text(student.name),
                   subtitle: Text(student.course),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() {
+                        students.removeAt(index);
+                      });
+                    },
+                  ),
                 );
               },
             ),
