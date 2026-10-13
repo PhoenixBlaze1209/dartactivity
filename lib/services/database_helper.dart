@@ -38,20 +38,20 @@ class DatabaseHelper {
     ''');
   }
 
-  // CREATE
+
   Future<int> insertStudent(Student student) async {
     final db = await instance.database;
     return await db.insert('students', student.toMap());
   }
 
-  // READ
+
   Future<List<Student>> getAllStudents() async {
     final db = await instance.database;
     final result = await db.query('students');
     return result.map((json) => Student.fromMap(json)).toList();
   }
 
-  // UPDATE
+
   Future<int> updateStudent(Student student) async {
     final db = await instance.database;
     return db.update(
@@ -62,7 +62,7 @@ class DatabaseHelper {
     );
   }
 
-  // DELETE
+
   Future<int> deleteStudent(int id) async {
     final db = await instance.database;
     return await db.delete(

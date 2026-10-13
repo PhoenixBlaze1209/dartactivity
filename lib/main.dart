@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/add_student_page.dart';
 import 'screens/student_details_page.dart';
 import 'services/database_helper.dart';
+import 'screens/edit_student_page.dart';
 
 
 void main() {
@@ -31,7 +32,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final searchController = TextEditingController();
   List<Student> students = [];
+  List<Student> filteredStudents = [];
   bool isLoading = true;
 
   @override
@@ -46,38 +49,99 @@ class _HomePageState extends State<HomePage> {
 
     try{
       students = await DatabaseHelper.instance.getAllStudents();
+      filteredStudents = students;
     } catch (e) {
-      print("database error  ngani");
+      print("database error  ngani $e");
     } finally {
       setState(() => isLoading = false);
     }
     
   }
 
+  void searchStudents(String query) {
+  setState(() {
+    filteredStudents = students.where((student) {
+      return student.name.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Student Information System')),
-      body: isLoading 
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: students.length,
-              itemBuilder: (context, index) {
-                final student = students[index];
-                return ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(student.name),
-                  subtitle: Text('${student.course} - Year ${student.yearLevel}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () async {
-                      // Delete from DB, then refresh UI
-                      await DatabaseHelper.instance.deleteStudent(student.id!);
-                      refreshStudents();
+          : Column(
+              children: [
+              
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: searchStudents,
+                    decoration: const InputDecoration(
+                      labelText: 'Search Student',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredStudents.length,
+                    itemBuilder: (context, index) {
+                      final student = filteredStudents[index]; 
+                      return ListTile(
+  leading: const Icon(Icons.person),
+  title: Text(student.name),
+  subtitle: Text('${student.course} - Year ${student.yearLevel}'),
+  trailing: Row(
+    mainAxisSize: MainAxisSize.min, 
+    children: [
+      
+      IconButton(
+        icon: const Icon(Icons.edit, color: Colors.blue),
+        onPressed: () async {
+          
+          final updatedStudent = await Navigator.push<Student>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditStudentPage(student: student),
+            ),
+          );
+
+         
+          if (updatedStudent != null) {
+            await DatabaseHelper.instance.updateStudent(updatedStudent);
+            refreshStudents();
+          }
+        },
+      ),
+
+      IconButton(
+        icon: const Icon(Icons.delete, color: Colors.red),
+        onPressed: () async {
+          await DatabaseHelper.instance.deleteStudent(student.id!);
+          refreshStudents();
+        },
+      ),
+    ],
+  ),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentDetailsPage(student: student),
+      ),
+    );
+  },
+);
                     },
                   ),
-                );
-              },
+                ),
+              ],
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -86,7 +150,7 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (context) => const AddStudentPage()),
           );
           if (newStudent != null) {
-            // Save to DB, then refresh UI
+            
             await DatabaseHelper.instance.insertStudent(newStudent);
             refreshStudents();
           }
